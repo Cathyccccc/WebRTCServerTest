@@ -1,0 +1,4 @@
+{
+  "watch": ["index.js"],
+  "ignore": ["node_modules", "package.json", "Public"]
+}

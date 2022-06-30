@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- <base href="/">
+  <link rel="stylesheet" href="index.css"> -->
+  <title>WebRTC测试</title>
+</head>
+<body>
+  <div class="top-op">
+    <div class="video-box">
+      <div class="toolbar">
+        <button id="create-btn">创建房间</button>
+        用户名：<input id="input" type="text">
+        <button id="join-btn">进入房间</button>
+        <button id="exit-btn" style="margin-bottom: 20px;">退出房间</button>
+      </div>
+      <div class="video-list">
+        <div id="my-video-container"></div>
+        <div id="remote-video-container"></div>
+      </div>
+    </div>
+    <div class="chat-box">
+      <div class="chat-content"></div>
+      <textarea name="" id="textarea"></textarea>
+      <button id="send-btn">发送</button>
+    </div>
+  </div>
+  <div class="bottom-op">
+    上传文件：<input id="upload-file" type="file" name="file">
+    <hr>
+    已上传文件列表：<ul id="file-list"></ul>
+  </div>
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js" integrity="sha384-7EyYLQZgWBi67fBtVxw60/OWl1kjsfrPFcaU0pp0nAh+i8FD068QogUvg85Ewy1k" crossorigin="anonymous"></script>
+  <!-- <script src="./js/socket.js" type="module"></script> -->
+</body>
+</html>
