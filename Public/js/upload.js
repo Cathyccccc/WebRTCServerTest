@@ -17,10 +17,13 @@ function getFileList () {
   fileList.innerHTML = ''
   getFiles().then((res) => {
     let str = ''
-    res.forEach((filename) => {
-      str += `<li class="file-item">${filename}<button class="del-btn">删除</button></li>`
-    })
-    fileList.innerHTML = str
+    if (res) {
+      res.forEach((filename) => {
+        str += `<li class="file-item">${filename}<button class="del-btn">删除</button></li>`
+      })
+      fileList.innerHTML = str
+    }
+    
     const delBtnList = document.querySelectorAll('.del-btn')
 
     delBtnList.forEach((delBtn) => {

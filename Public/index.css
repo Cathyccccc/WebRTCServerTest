@@ -10,7 +10,7 @@ body {
 }
 
 .top-op .video-box {
-  width: 70%;
+  width: calc(100% - 260px);
   height: 100%;
   overflow-y: auto;
   background-color: whitesmoke;
@@ -19,7 +19,7 @@ body {
 }
 
 .top-op .chat-box {
-  width: 30%;
+  width: 260px;
   height: 100%;
   position: relative;
 }
