@@ -240,11 +240,7 @@ function WebRTC(socket_id, localStream) {
 
 const config = {
   iceServers: [
-    {
-      url: 'turn:101.43.174.211:3478',
-      username: 'demo',
-      credential: '123456'
-    }
+    { url: 'stun:stun.xten.com' }
   ]
 }
 
