@@ -15,7 +15,6 @@ const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
 const bodyParser = require('body-parser');
-require('./stun')
 
 app.use(bodyParser.urlencoded({ extended: false, limit: '50mb' }));
 app.use(bodyParser.json({ limit: '50mb' })); // 解析json格式的请求体
@@ -62,54 +61,37 @@ app.use('/delfile', (req, res) => {
   })
 })
 
-let roomId;
+let room;
 let clientsInRoom;
 io.on('connection', (socket) => {
   console.log('=== connection success ===', socket.id)
 
-  socket.on('login', (data, callback) => {
-    console.log('=== login ===', data)
-    callback(data)
-  })
-
-  socket.on('create', (data) => {
-    console.log('=== create ===', data)
-    roomId = data.roomId
-    socket.emit('created', data)
-    // 数据库中存储房间id（meetingid）和初次邀请用户，被邀请用户界面上有入口
-  })
-
-  // socket.on('joinRoom', (data) => {
-  //   console.log(`=== ${data.user} join room ===`, data)
-  //   socket.join(roomId); // 不会重复进入房间（先进来的在前，后进来的在后）
-  //   clientsInRoom = Array.from(socket.adapter.rooms.get(roomId)) // 所有加入该房间的用户的socket id构成的数组
-  //   const peers = clientsInRoom.filter(socketId => socketId !== data.from) // 除当前加入者外，房间内其他人的socket id
-  //   console.log(peers)
-  //   clientsInRoom.forEach((socketId) => {
-  //     const socketItem = io.sockets.sockets.get(socketId)
-  //     socketItem.emit('joined', {
-  //       from: data.from,
-  //       roomId,
-  //       peers
-  //     })
-  //   })
+  // socket.on('login', (data, callback) => {
+  //   console.log('=== login ===', data)
+  //   callback(data)
   // })
-  socket.on('join', async (data) => {
-    if (data.roomId !== roomId) {
-      roomId = data.roomId
+
+  // socket.on('create', (data) => {
+  //   console.log('=== create ===', data)
+  //   room = data.roomId
+  //   socket.emit('created', data)
+  //   // 数据库中存储房间id（meetingid）和初次邀请用户，被邀请用户界面上有入口
+  // })
+
+  socket.on('join', (data) => {
+    const { user, roomId, from } = data;
+    if (!room) {
+      room = roomId; // 这里逻辑简化，第一个加入的人直接创建房间（房间号不同的话加入的是不同的房间）
     }
-    console.log(`=== join room ===`, data)
-    socket.join(roomId)
+    socket.join(room); // 加入房间的机制由 Adapter 配置
+    console.log('=== join room ===')
     clientsInRoom = Array.from(socket.adapter.rooms.get(roomId)) // 所有加入该房间的用户的socket id构成的数组
     const peers = clientsInRoom.filter(socketId => socketId !== data.from)
-    clientsInRoom.forEach((socketId) => {
-      const socketItem = io.sockets.sockets.get(socketId)
-      // 有人加入房间，该用户通知房间内的其他人
-      socketItem.emit('joined', {
-        from: data.from,
-        peers,
-        user: data.user
-      })
+    // io.to 和 socket.to 的区别：socket.to 向房间发送消息时，不包括自己
+    io.to(room).emit('joined', {
+      from,
+      user,
+      peers
     })
   })
 
@@ -117,47 +99,19 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('sponsor', data)
   })
 
-  // socket.on('offer', (data) => { // 收到来自加入者的offer
-  //   console.log('=== offer ===', data)
-  //   clientsInRoom.forEach((socketId) => {
-  //     if (socketId !== data.from) {
-  //       const socketItem = io.sockets.sockets.get(socketId)
-  //       socketItem.emit('offer', data) // 房间其他人各自给发送offer
-  //     }
-  //   })
-  // })
   socket.on('offer', (data) => {
-    console.log('=== offer ===', data);
+    // console.log('=== offer ===', data);
     const socketItem = io.sockets.sockets.get(data.to)
     console.log(socketItem.id)
     socketItem.emit('offer', data)
   })
 
-  // socket.on('answer', (data) => {
-  //   console.log('=== answer ===', data)
-  //   clientsInRoom.forEach((socketId) => {
-  //     if (socketId === data.to) {
-  //       const socketItem = io.sockets.sockets.get(socketId)
-  //       socketItem.emit('answer', data) // 将answer传递给想要传递的人
-  //     }
-  //   })
-  // })
   socket.on('answer', (data) => {
     const socketItem = io.sockets.sockets.get(data.to)
     socketItem.emit('answer', data)
-    console.log('=== answer ===', data, socketItem.id)
+    // console.log('=== answer ===', data, socketItem.id)
   })
 
-  // socket.on('candidate', (data) => {
-  //   console.log('=== candidate ===', data)
-  //   clientsInRoom.forEach((socketId) => {
-  //     if (socketId === data.to) {
-  //       const socketItem = io.sockets.sockets.get(socketId)
-  //       console.log(socketItem)
-  //       socketItem.emit('candidate', data) // 将candidate传递给其他连接人
-  //     }
-  //   })
-  // })
   socket.on('ice', (data) => {
     const socketItem = io.sockets.sockets.get(data.to)
     socketItem.emit('ice', data)
@@ -166,30 +120,28 @@ io.on('connection', (socket) => {
 
   socket.on('exit', (data) => {
     console.log('=== exit ===', data)
-    socket.leave(data.roomId)
-    if (clientsInRoom) {
-      clientsInRoom.forEach((socketId) => {
-        if (socketId !== data.from) {
-          const socketItem = io.sockets.sockets.get(socketId)
-          socketItem.emit('exit', data) // 将某人退出的消息传递给其他人
-        }
-      })
+    if (socket.rooms.has(data.roomId)) {
+      socket.leave(data.roomId)
+      io.to(data.roomId).emit('exit', data) // 将某人退出的消息传递给房间内的其他人
+      socket.emit('exited', { success: true })
+    } else {
+      socket.emit('exited', { success: false, error: 'Not in room' })
     }
   })
 
   socket.on('message', (data) => {
     console.log('=== message ===', data)
-    socket.to(roomId).emit('message', data)
+    socket.to(room).emit('message', data)
   })
 
   socket.on('shareScreen', (data) => {
     console.log('=== shareScreen ===', data)
-    socket.to(roomId).emit('share', data)
+    socket.to(room).emit('share', data)
   })
 
   socket.on('shareClose', (data) => {
     console.log('=== shareClose ===', data)
-    socket.to(roomId).emit('shareClose', data)
+    socket.to(room).emit('shareClose', data)
   })
 
   socket.on('onShare', (data) => {
@@ -199,7 +151,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', (reason) => {
     console.log('=== disconnect ===', reason)
-    socket.to(roomId).emit('break', {
+    socket.to(room).emit('break', { // 房间内某个人断开通知到个人
       from: socket.id
     })
   })

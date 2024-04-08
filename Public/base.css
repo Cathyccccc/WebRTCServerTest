@@ -1,0 +1,98 @@
+/* 按钮 */
+button {
+  cursor: pointer;
+  outline: none;
+  border: none;
+  line-height: 1;
+  font-size: 14px;
+  border-radius: 5px;
+  font-family: inherit;
+  transition: all .3s;
+}
+button:hover {
+  opacity: .8;
+}
+button:not(.circle) {
+  padding: 4px 12px;
+  height: 32px;
+}
+.default {
+  color: #3c3c3c;
+  background-color: #fff;
+  border: 1px solid #eee;
+  /* transition: all .3s; */
+}
+.default:hover {
+  color: #72c7ff;
+  border-color: #72c7ff;
+}
+.default:active {
+  color: #55BBFF;
+  border-color: #55BBFF;
+  box-shadow: 0 0 5px 1px #55BBFF;
+}
+.primary {
+  background-color: #55BBFF;
+  color: #fff;
+}
+.primary:active {
+  background-color: #72c7ff;
+  box-shadow: 0 0 5px 1px #55BBFF;
+}
+
+/* 输入框 */
+input[type=text] {
+  outline: none;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  padding: 4px 6px;
+  line-height: 1.6;
+  box-sizing: border-box;
+  color: inherit;
+}
+input::placeholder {
+  color: #e3e3e3;
+}
+input::-moz-placeholder {
+  color: #e3e3e3;
+}
+input:-moz-placeholder {
+  color: #e3e3e3;
+}
+input::-webkit-input-placeholder {
+  color: #e3e3e3;
+}
+
+/* textarea 文本框 */
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  /* border-radius: 5px; */
+  padding: 5px;
+  resize: none;
+  border: 1px solid #eee;
+  font: inherit;
+  font-size: 14px;
+  color: #3c3c3c;
+}
+
+textarea::placeholder {
+  color: #55BBFF;
+  font-weight: 600;
+}
+
+textarea:-moz-placeholder {
+  color: #55BBFF;
+  font-weight: 600;
+}
+
+textarea:-ms-input-placeholder {
+  color: #55BBFF;
+  font-weight: 600;
+}
+
+/* textarea:focus {
+  border-color: #55BBFF;
+} */
