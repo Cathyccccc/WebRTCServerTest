@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const { Server } = require('socket.io');
 const http = require('http');
+const path = require('path')
+const fs = require('fs')
 const httpServer = http.createServer(app)
 const io = new Server(httpServer, {
   cors: {
@@ -9,6 +11,11 @@ const io = new Server(httpServer, {
     credentials: true
   },
   pingTimeout: 60000,
+})
+
+app.use(express.static(path.join(__dirname, '/Public/dist')));
+app.get('*', (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*") // 解决跨域问题
 })
 
 let room;
