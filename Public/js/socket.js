@@ -205,32 +205,49 @@ function getConnect() {
     })
   }).catch(err => console.log(err))
 }
-function getUserMedia() {
-  const getUserMedia = (navigator.getUserMedia ||
-    navigator.webkitGetUserMedia ||
-    navigator.mozGetUserMedia ||
-    navigator.msGetUserMedia)
-  // 获取本地的媒体流，并绑定到一个video标签上输出，并且发送这个媒体流给其他客户端
-  return new Promise((resolve, reject) => {
-    getUserMedia.call(navigator, {
-      video: true,
-      audio: {
-        autoGainControl: true,
-        echoCancellation: true,
-        noiseSuppression: true,
-        simpleSize: 16
+async function getUserMedia() {
+  // 老的浏览器可能根本没有实现 mediaDevices，所以我们可以先设置一个空的对象
+  if (navigator.mediaDevices === undefined) {
+    navigator.mediaDevices = {};
+  }
+
+  // 一些浏览器部分支持 mediaDevices。我们不能直接给对象设置 getUserMedia
+  // 因为这样可能会覆盖已有的属性。这里我们只会在没有 getUserMedia 属性的时候添加它。
+  if (navigator.mediaDevices.getUserMedia === undefined) {
+    navigator.mediaDevices.getUserMedia = function (constraints) {
+      // 首先，如果有 getUserMedia 的话，就获得它
+      var getUserMedia =
+        navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+      // 一些浏览器根本没实现它 - 那么就返回一个 error 到 promise 的 reject 来保持一个统一的接口
+      if (!getUserMedia) {
+        return Promise.reject(
+          new Error("getUserMedia is not implemented in this browser"),
+        );
       }
-    }, (stream) => {
-      // 绑定本地媒体流到video标签用于输出
-      localStream = stream
-      selfTrack = stream.getVideoTracks()[0]
-      resolve()
-    }, function (error) {
-      reject(error)
-      // console.log(error);
-      // 处理媒体流创建失败错误
-    })
-  })
+
+      // 否则，为老的 navigator.getUserMedia 方法包裹一个 Promise
+      return new Promise(function (resolve, reject) {
+        getUserMedia.call(navigator, constraints, resolve, reject);
+      });
+    };
+  }
+  try {
+    const stream = await navigator.mediaDevices
+      .getUserMedia({
+        video: true,
+        audio: {
+          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+          simpleSize: 16
+        }
+      })
+    localStream = stream
+    selfTrack = stream.getVideoTracks()[0]
+  } catch (error) {
+    console.log('media stream create fail')
+  }
 }
 
 function WebRTC(socket_id, localStream) {
