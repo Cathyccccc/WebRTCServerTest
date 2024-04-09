@@ -13,7 +13,9 @@ var options = {
 };
 
 const httpServer = http.createServer(options, app)
-const io = new Server(httpServer)
+const io = new Server(httpServer, {
+    pingTimeout: 60000
+})
 ```
 
 2. js/socket.js 文件的修改：
