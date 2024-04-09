@@ -54,7 +54,6 @@ socket.on('offer', offerListener)
 socket.on('answer', answerListener)
 socket.on('ice', iceListener)
 socket.on('exit', exitListener)
-socket.on('break', breakListener)
 socket.on('message', messageListener)
 socket.on('share', shareListener)
 socket.on('shareClose', shareCloseListener)
@@ -143,16 +142,16 @@ function exitListener(data) {
   const _removeVideoBox = document.getElementById(data.from).parentElement
   _videoList.removeChild(_removeVideoBox)
 }
-function breakListener(data) {
-  console.log(`【${data.from} 断开连接】`)
-  try {
-    const breakVideo = document.querySelector(`#${data.from}`)
-    _videoList.removeChild(breakVideo.parentElement)
-    delete peers[data.from]
-  } catch (error) {
-    console.log(error)
-  }
-}
+// function breakListener(data) {
+//   console.log(`【${data.from} 断开连接】`)
+//   try {
+//     const breakVideo = document.querySelector(`#${data.from}`)
+//     _videoList.removeChild(breakVideo.parentElement)
+//     delete peers[data.from]
+//   } catch (error) {
+//     console.log(error)
+//   }
+// }
 function messageListener(data) {
   const talkBox = document.createElement('div')
   talkBox.style.width = '100%'
