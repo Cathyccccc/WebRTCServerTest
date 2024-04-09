@@ -9,7 +9,8 @@ const io = new Server(httpServer, {
   cors: {
     origin: ["http://127.0.0.1:12306"],
     credentials: true
-  }
+  },
+  pingTimeout: 60000,
 })
 const multer = require('multer')
 const path = require('path')
