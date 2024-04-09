@@ -1,8 +1,6 @@
 const express = require('express');
 const app = express();
 const { Server } = require('socket.io');
-// const https = require('https');
-// const httpServer = https.createServer(app)
 const http = require('http');
 const httpServer = http.createServer(app)
 const io = new Server(httpServer, {
@@ -12,76 +10,15 @@ const io = new Server(httpServer, {
   },
   pingTimeout: 60000,
 })
-const multer = require('multer')
-const path = require('path')
-const fs = require('fs')
-const bodyParser = require('body-parser');
-
-app.use(bodyParser.urlencoded({ extended: false, limit: '50mb' }));
-app.use(bodyParser.json({ limit: '50mb' })); // 解析json格式的请求体
-
-const upload = multer({
-  dest: path.resolve(__dirname, './Public/upload')
-})
-
-app.use(express.static(path.join(__dirname, '/Public/dist')));
-app.get('*', (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*") // 解决跨域问题
-})
-
-app.post('/upload', upload.single('file'), (req, res) => {
-  console.log(req.file);
-  res.send(req.file);
-})
-
-app.get('/file', (req, res) => {
-  fs.readdir(path.resolve(__dirname, './Public/upload'), (err, files) => {
-    if (err) {
-      res.send(err);
-    } else {
-      res.send(files);
-    }
-  })
-})
-
-app.use('/delfile', (req, res) => {
-  const name = req.body.data
-  fs.unlink(path.join(path.resolve(__dirname, './Public/upload'), name), (err) => {
-    if (err) {
-      res.send({
-        status: 0,
-        msg: 'delete failed'
-      })
-    } else {
-      res.send({
-        status: 1,
-        msg: 'delete success',
-        data: name
-      })
-    }
-  })
-})
 
 let room;
 let clientsInRoom;
 io.on('connection', (socket) => {
   console.log('=== connection success ===', socket.id)
 
-  // socket.on('login', (data, callback) => {
-  //   console.log('=== login ===', data)
-  //   callback(data)
-  // })
-
-  // socket.on('create', (data) => {
-  //   console.log('=== create ===', data)
-  //   room = data.roomId
-  //   socket.emit('created', data)
-  //   // 数据库中存储房间id（meetingid）和初次邀请用户，被邀请用户界面上有入口
-  // })
-
   socket.on('join', (data) => {
     const { user, roomId, from } = data;
-    if (!room) {
+    if (room !== roomId) {
       room = roomId; // 这里逻辑简化，第一个加入的人直接创建房间（房间号不同的话加入的是不同的房间）
     }
     socket.join(room); // 加入房间的机制由 Adapter 配置
@@ -96,27 +33,19 @@ io.on('connection', (socket) => {
     })
   })
 
-  socket.on('sponsor', (data) => {
-    socket.broadcast.emit('sponsor', data)
-  })
-
   socket.on('offer', (data) => {
-    // console.log('=== offer ===', data);
     const socketItem = io.sockets.sockets.get(data.to)
-    console.log(socketItem.id)
     socketItem.emit('offer', data)
   })
 
   socket.on('answer', (data) => {
     const socketItem = io.sockets.sockets.get(data.to)
     socketItem.emit('answer', data)
-    // console.log('=== answer ===', data, socketItem.id)
   })
 
   socket.on('ice', (data) => {
     const socketItem = io.sockets.sockets.get(data.to)
     socketItem.emit('ice', data)
-    console.log('=== ice ===', data, socketItem.id)
   })
 
   socket.on('exit', (data) => {
