@@ -80,10 +80,20 @@ io.on('connection', (socket) => {
   })
 
   socket.on('disconnect', (reason) => {
-    console.log('=== disconnect ===', reason)
-    socket.to(room).emit('break', { // 房间内某个人断开通知到个人
-      from: socket.id
-    })
+    console.log(`=== disconnect === 【 ${reason} 】`)
+    if (reason === 'client namespace disconnect') {
+      console.log('客户端使用socket.disconnect()手动断开socket')
+    } else if (reason === 'server namespace disconnect') {
+      console.log('服务端使用socket.disconnect强行断开')
+    } else if (reason === 'server shutting down') {
+      console.log('服务器正在关闭')
+    } else if (reason === 'ping timeout') {
+      console.log('pingTimeout 客户端在延迟中没有发送 PONG 数据包')
+    } else if (reason === 'transport close') {
+      console.log('连接已关闭（例如：用户失去连接，或网络从 WiFi 更改为 4G）')
+    } else if (reason === 'transport error') {
+      console.log('连接遇到错误')
+    }
   })
 })
 
