@@ -35,11 +35,15 @@ socket.on('reconnect_attempt', function (attemptNumber) {
 });
 socket.on('disconnect', function (reason) {
   if (reason === 'io server disconnect') {
-    // 服务器正常关闭连接  
-    console.log('【正常断开】')
-  } else {
-    // 处理非正常断开连接的情况  
-    console.log('【非正常断开】')
+    console.log('【服务器调用socket.disconnect()强制断开】')
+  } else if (reason === 'io client disconnect') {
+    console.log('【客户端调用disconnect()断开】')
+  } else if (reason === 'ping timeout') {
+    console.log('服务器未在该pingInterval + pingTimeout范围内发送 PING') // 自动重连
+  } else if (reason === 'transport close') {
+    console.log('连接已关闭（例如：用户失去连接，或网络从 WiFi 更改为 4G）') // 自动重连
+  } else if (reason === 'transport error') {
+    console.log('连接遇到错误（例如：服务器在 HTTP 长轮询周期中被杀死）') // 自动重连
   }
 });
 socket.on('error', function (err) {
