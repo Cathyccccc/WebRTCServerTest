@@ -1,5 +1,4 @@
 import io from 'socket.io-client'
-// import { uploadApi, getFiles } from "../api/upload";
 import { getRandomStr, getRTCSenders, getStreamTracks } from './util';
 let socket = null;
 let socketId, // 当前用户的 socket.id
@@ -12,7 +11,6 @@ let socketId, // 当前用户的 socket.id
   senders = [],
   shareTrack = null,
   shareScreen = false, // 标记自己是否正在进行屏幕共享
-  sponsor = null,
   userList = [],
   roomId = null,
   shareId = null
