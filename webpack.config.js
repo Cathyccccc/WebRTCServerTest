@@ -2,6 +2,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { resolve } = require('path');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
+const isDev = process.env.NODE_ENV === 'development'
+
 module.exports = {
   mode: 'development',
   entry: './Public/js/index.js',
@@ -37,8 +39,8 @@ module.exports = {
     new MiniCssExtractPlugin({
       // Options similar to the same options in webpackOptions.output
       // both options are optional
-      filename: devMode ? "[name].css" : "[name].[contenthash].css",
-      chunkFilename: devMode ? "[id].css" : "[id].[contenthash].css",
+      filename: isDev ? "[name].css" : "[name].[contenthash].css",
+      chunkFilename: isDev ? "[id].css" : "[id].[contenthash].css",
     }),
   ]
 }
