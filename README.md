@@ -45,4 +45,6 @@ const config = {
 
 断开连接的问题：
 
-socket.io-client 版本低于 4.1.3 时，心跳机制会导致 websocket 断开连接和 timeout 超时问题，官方建议将 pingTimeout 的时间延长，来防止该问题。或者直接使用更高的版本，注意客户端和浏览器端的版本要兼容。
+socket.io-client 版本低于 4.1.3 时，心跳机制会导致断开连接问题，官方建议将 pingTimeout 的时间延长，来防止该问题。或者直接使用更高的版本，注意客户端和浏览器端的版本要兼容。
+
+websocket 请求失败时（第4个请求），不一定是阻塞，官方说是服务器和浏览器之间的某些东西阻止了 WebSocket 连接，此时连接是通过http长轮询建立的。解决方案：https://socket.io/zh-CN/docs/v4/reverse-proxy/
