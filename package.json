@@ -10,19 +10,18 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.20.0",
+    "express": "^4.18.0",
+    "socket.io": "^4.5.0",
+    "socket.io-client": "^4.1.0",
+    "stun": "^2.1.0"
+  },
+  "devDependencies": {
     "@babel/core": "^7.17.9",
     "@babel/preset-env": "^7.16.11",
     "babel-loader": "^8.2.5",
-    "body-parser": "^1.20.0",
-    "express": "^4.18.0",
     "html-webpack-plugin": "^5.5.0",
-    "multer": "^1.4.5-lts.1",
-    "socket.io": "^4.5.0",
-    "socket.io-client": "^4.1.0",
-    "stun": "^2.1.0",
-    "webpack-dev-server": "^4.8.1"
-  },
-  "devDependencies": {
+    "webpack-dev-server": "^4.8.1",
     "css-loader": "^6.7.1",
     "nodemon": "^2.0.15",
     "npm-run-all": "^4.1.5",
