@@ -258,7 +258,7 @@ function WebRTC(socket_id, localStream) {
 
 const config = {
   iceServers: [
-    { url: 'stun:stun.xten.com' }
+    { urls: 'stun:stun.xten.com' }
   ]
 }
 
