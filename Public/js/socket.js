@@ -23,7 +23,7 @@ let socketId,
 
 const config = {
   iceServers: [
-    { url: 'stun:stun.xten.com' }
+    { urls: 'stun:stun.xten.com' }
   ]
 }
 // 初始化
