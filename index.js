@@ -1,9 +1,9 @@
 const express = require('express');
 const app = express();
 const { Server } = require('socket.io');
-// const https = require('https');
-// const httpServer = https.createServer(app)
 const http = require('http');
+const path = require('path')
+const fs = require('fs')
 const httpServer = http.createServer(app)
 
 // const port = 3000 // 本地调试
@@ -27,18 +27,6 @@ let clientsInRoom;
 io.on('connection', (socket) => {
   console.log('=== connection success ===', socket.id)
 
-  // socket.on('login', (data, callback) => {
-  //   console.log('=== login ===', data)
-  //   callback(data)
-  // })
-
-  // socket.on('create', (data) => {
-  //   console.log('=== create ===', data)
-  //   room = data.roomId
-  //   socket.emit('created', data)
-  //   // 数据库中存储房间id（meetingid）和初次邀请用户，被邀请用户界面上有入口
-  // })
-
   socket.on('join', (data) => {
     const { user, roomId, from } = data;
     if (room !== roomId) {
@@ -56,27 +44,19 @@ io.on('connection', (socket) => {
     })
   })
 
-  socket.on('sponsor', (data) => {
-    socket.broadcast.emit('sponsor', data)
-  })
-
   socket.on('offer', (data) => {
-    // console.log('=== offer ===', data);
     const socketItem = io.sockets.sockets.get(data.to)
-    console.log(socketItem.id)
     socketItem.emit('offer', data)
   })
 
   socket.on('answer', (data) => {
     const socketItem = io.sockets.sockets.get(data.to)
     socketItem.emit('answer', data)
-    // console.log('=== answer ===', data, socketItem.id)
   })
 
   socket.on('ice', (data) => {
     const socketItem = io.sockets.sockets.get(data.to)
     socketItem.emit('ice', data)
-    console.log('=== ice ===', data, socketItem.id)
   })
 
   socket.on('exit', (data) => {

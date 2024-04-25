@@ -11,7 +11,6 @@ let socketId, // 当前用户的 socket.id
   senders = [],
   shareTrack = null,
   shareScreen = false, // 标记自己是否正在进行屏幕共享
-  sponsor = null,
   userList = [],
   roomId = null,
   shareId = null
@@ -145,7 +144,6 @@ function exitListener(data) {
   const _removeVideoBox = document.getElementById(data.from).parentElement
   _videoList.removeChild(_removeVideoBox)
 }
-
 function messageListener(data) {
   createTalkBox(data.from, randomColor(), 'other-talk', data.msg)
 }
@@ -217,7 +215,6 @@ function getConnect() {
     })
   }).catch(err => console.log(err))
 }
-
 async function getUserMedia() {
   // 老的浏览器可能根本没有实现 mediaDevices，所以我们可以先设置一个空的对象
   if (navigator.mediaDevices === undefined) {
@@ -270,11 +267,7 @@ function WebRTC(socket_id, localStream) {
 
 const config = {
   iceServers: [
-    {
-      url: 'turn:101.43.174.211:3478',
-      username: 'demo',
-      credential: '123456'
-    }
+    { urls: 'stun:stun.xten.com' }
   ]
 }
 
