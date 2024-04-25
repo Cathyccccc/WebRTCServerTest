@@ -1,6 +1,5 @@
 import io from 'socket.io-client'
-// import { uploadApi, getFiles } from "../api/upload";
-import { getRandomStr, getRTCSenders, getStreamTracks } from './util';
+import { getRandomStr, randomColor } from './util';
 let socket = null;
 let socketId, // 当前用户的 socket.id
   localStream = null, // 本地流（摄像头视频流或屏幕共享流）
@@ -16,12 +15,16 @@ let socketId, // 当前用户的 socket.id
   userList = [],
   roomId = null,
   shareId = null
-socket = io('http://127.0.0.1:12306', {
-  withCredentials: true,
-  autoConnect: false
-});
+// socket = io('http://127.0.0.1:3000', {
+//   withCredentials: true,
+//   autoConnect: false,
+// });
 // console.log('socket', socket)
 // 初始化
+socket = io('http://127.0.0.1:12306', {
+  withCredentials: true,
+  autoConnect: false,
+})
 
 socket.on('connect', () => {
   socketId = socket.id
@@ -35,11 +38,15 @@ socket.on('reconnect_attempt', function (attemptNumber) {
 });
 socket.on('disconnect', function (reason) {
   if (reason === 'io server disconnect') {
-    // 服务器正常关闭连接  
-    console.log('【正常断开】')
-  } else {
-    // 处理非正常断开连接的情况  
-    console.log('【非正常断开】')
+    console.log('【服务器调用socket.disconnect()强制断开】')
+  } else if (reason === 'io client disconnect') {
+    console.log('【客户端调用disconnect()断开】')
+  } else if (reason === 'ping timeout') {
+    console.log('服务器未在该pingInterval + pingTimeout范围内发送 PING') // 自动重连
+  } else if (reason === 'transport close') {
+    console.log('连接已关闭（例如：用户失去连接，或网络从 WiFi 更改为 4G）') // 自动重连
+  } else if (reason === 'transport error') {
+    console.log('连接遇到错误（例如：服务器在 HTTP 长轮询周期中被杀死）') // 自动重连
   }
 });
 socket.on('error', function (err) {
@@ -50,7 +57,6 @@ socket.on('offer', offerListener)
 socket.on('answer', answerListener)
 socket.on('ice', iceListener)
 socket.on('exit', exitListener)
-socket.on('break', breakListener)
 socket.on('message', messageListener)
 socket.on('share', shareListener)
 socket.on('shareClose', shareCloseListener)
@@ -139,22 +145,9 @@ function exitListener(data) {
   const _removeVideoBox = document.getElementById(data.from).parentElement
   _videoList.removeChild(_removeVideoBox)
 }
-function breakListener(data) {
-  console.log(`【${data.from} 断开连接】`)
-  try {
-    const breakVideo = document.querySelector(`#${data.from}`)
-    _videoList.removeChild(breakVideo.parentElement)
-    delete peers[data.from]
-  } catch (error) {
-    console.log(error)
-  }
-}
+
 function messageListener(data) {
-  const talkBox = document.createElement('div')
-  talkBox.style.width = '100%'
-  talkBox.innerText = `${data.username}: ${data.msg}`
-  const chatContent = document.querySelector('.chat-content')
-  chatContent.appendChild(talkBox)
+  createTalkBox(data.from, randomColor(), 'other-talk', data.msg)
 }
 function shareListener(data) {
   console.log(`【收到 ${data.from} 的屏幕共享】`)
@@ -170,8 +163,27 @@ function showLarge(socket_id) {
     _parentBox.width = _videoList.width;
     _parentBox.height = _videoList.height;
   } catch (error) {
-    console.log(error, '要放大：',socket_id, '本地：', socketId)
+    console.log(error, '要放大：', socket_id, '本地：', socketId)
   }
+}
+function createTalkBox(socket, color, type, content) {
+  const talkBox = document.createElement('div')
+  talkBox.style.width = '100%'
+  const cls = ['talk-box', type]
+  talkBox.classList.add(...cls)
+  const _avatar = document.createElement('div')
+  _avatar.className = 'avatar'
+  _avatar.style.backgroundColor = color
+  _avatar.innerText = socket.slice(0, 3)
+  talkBox.appendChild(_avatar)
+  const _content = document.createElement('div')
+  _content.className = 'talk-content'
+  _content.innerText = content
+  talkBox.appendChild(_content)
+  const chatContent = document.querySelector('.chat-content')
+  chatContent.appendChild(talkBox)
+  chatContent.scrollTop = chatContent.scrollHeight
+  // talkBox.scrollIntoView({ behavior: 'smooth' }) // 缺点，消息栏隐藏时会使消息栏显示，且会推挤其他元素
 }
 function shareCloseListener(data) {
   console.log(`【收到 ${data.from} 的屏幕共享关闭】`)
@@ -205,32 +217,50 @@ function getConnect() {
     })
   }).catch(err => console.log(err))
 }
-function getUserMedia() {
-  const getUserMedia = (navigator.getUserMedia ||
-    navigator.webkitGetUserMedia ||
-    navigator.mozGetUserMedia ||
-    navigator.msGetUserMedia)
-  // 获取本地的媒体流，并绑定到一个video标签上输出，并且发送这个媒体流给其他客户端
-  return new Promise((resolve, reject) => {
-    getUserMedia.call(navigator, {
-      video: true,
-      audio: {
-        autoGainControl: true,
-        echoCancellation: true,
-        noiseSuppression: true,
-        simpleSize: 16
+
+async function getUserMedia() {
+  // 老的浏览器可能根本没有实现 mediaDevices，所以我们可以先设置一个空的对象
+  if (navigator.mediaDevices === undefined) {
+    navigator.mediaDevices = {};
+  }
+
+  // 一些浏览器部分支持 mediaDevices。我们不能直接给对象设置 getUserMedia
+  // 因为这样可能会覆盖已有的属性。这里我们只会在没有 getUserMedia 属性的时候添加它。
+  if (navigator.mediaDevices.getUserMedia === undefined) {
+    navigator.mediaDevices.getUserMedia = function (constraints) {
+      // 首先，如果有 getUserMedia 的话，就获得它
+      var getUserMedia =
+        navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+      // 一些浏览器根本没实现它 - 那么就返回一个 error 到 promise 的 reject 来保持一个统一的接口
+      if (!getUserMedia) {
+        return Promise.reject(
+          new Error("getUserMedia is not implemented in this browser"),
+        );
       }
-    }, (stream) => {
-      // 绑定本地媒体流到video标签用于输出
-      localStream = stream
-      selfTrack = stream.getVideoTracks()[0]
-      resolve()
-    }, function (error) {
-      reject(error)
-      // console.log(error);
-      // 处理媒体流创建失败错误
-    })
-  })
+
+      // 否则，为老的 navigator.getUserMedia 方法包裹一个 Promise
+      return new Promise(function (resolve, reject) {
+        getUserMedia.call(navigator, constraints, resolve, reject);
+      });
+    };
+  }
+  try {
+    const stream = await navigator.mediaDevices
+      .getUserMedia({
+        video: true,
+        audio: {
+          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+          simpleSize: 16
+        }
+      })
+    localStream = stream
+    selfTrack = stream.getVideoTracks()[0]
+  } catch (error) {
+    console.log('media stream create fail')
+  }
 }
 
 function WebRTC(socket_id, localStream) {
@@ -313,10 +343,9 @@ function createVideoBox(socket_id) {
   _video.style.height = '100%'
   _video.id = socket_id; // 设置id为视频的标识符
   const _title = document.createElement('div');
-  _title.innerText = socket_id
+  _title.innerText = socket_id.slice(0, 6)
   const _videoBox = document.createElement('div')
   _videoBox.className = 'video-box'
-  _videoBox.style.position = 'relative'
   _videoBox.appendChild(_video)
   _videoBox.appendChild(_title)
   _videoList.appendChild(_videoBox)
@@ -411,7 +440,6 @@ document.querySelector('#exit-btn').onclick = () => {
   _chatContent.innerHTML = null
   _videoList.innerHTML = null
 }
-
 const _textarea = document.querySelector('#textarea')
 document.querySelector('#send-btn').onclick = () => {
   if (!peers[socketId]) {
@@ -425,15 +453,29 @@ document.querySelector('#send-btn').onclick = () => {
       msg: message,
       username
     })
-    const talkBox = document.createElement('div')
-    talkBox.innerText = `${username}: ${message}`
-
-    _chatContent.appendChild(talkBox)
+    createTalkBox(socketId, randomColor(), 'my-talk', message)
     _textarea.value = ''
   }
 }
+const _share = document.querySelector('.share')
+const _shareOff = document.querySelector('.share-off')
+const _shareOn = document.querySelector('.share-on')
+_share.onclick = () => {
+  const display = _shareOff.style.display
+  if (display === '' || display === 'block') {
+    // 视频共享处于关闭状态，需要开启
+    _shareOff.style.display = 'none'
+    _shareOn.style.display = 'block'
+    shareOn()
+  } else {
+    // 视频共享处于开启状态，需要关闭
+    _shareOff.style.display = 'block'
+    _shareOn.style.display = 'none'
+    shareOff()
+  }
+}
 
-document.querySelector('.share_on_btn').onclick = () => {
+function shareOn() {
   console.log('【我开启屏幕共享】') // 更改的是视频流
   if (shareScreen) {
     alert('正在屏幕共享')
@@ -483,7 +525,7 @@ function handleShareScreenEnded() {
   })
 }
 
-document.querySelector('.share_off_btn').onclick = () => {
+function shareOff() {
   if (shareId !== socketId) return // 不能结束别人的屏幕共享
   if (!shareScreen) {
     console.log('【没有共享屏幕】')
@@ -494,12 +536,31 @@ document.querySelector('.share_off_btn').onclick = () => {
   shareTrack.stop()
 }
 
-const _btnMuteOn = document.querySelector('.mute_on_btn')
-const _btnMuteOff = document.querySelector('.mute_off_btn')
-_btnMuteOn.onclick = () => {
-  muteOn()
-  _btnMuteOn.disabled = true
-  _btnMuteOff.disabled = false
+const _message = document.querySelector('.message')
+const _chatDisplay = document.querySelector('.chat-display')
+_message.onclick = function () {
+  const cls = _chatDisplay.classList
+  if (cls.contains('open')) {
+    cls.remove('open')
+  } else {
+    cls.add('open')
+  }
+}
+
+const _mute = document.querySelector('.mute')
+const _muteOn = document.querySelector('.mute-on')
+const _muteOff = document.querySelector('.mute-off')
+_mute.onclick = () => {
+  let display = _muteOn.style.display
+  if (display === '' || display === 'block') {
+    _muteOn.style.display = 'none'
+    _muteOff.style.display = 'block'
+    muteOn()
+  } else {
+    _muteOn.style.display = 'block'
+    _muteOff.style.display = 'none'
+    muteOff()
+  }
 }
 
 function muteOff() {
@@ -522,13 +583,23 @@ function muteOn() {
   })
 }
 
-_btnMuteOff.onclick = () => {
-  muteOff()
-  _btnMuteOff.disabled = true
-  _btnMuteOn.disabled = false
+const _camera = document.querySelector('.camera')
+const _cameraOn = document.querySelector('.camera-on')
+const _cameraOff = document.querySelector('.camera-off')
+_camera.onclick = () => {
+  const display = _cameraOn.style.display
+  if (display === '' || display === 'block') {
+    _cameraOn.style.display = 'none'
+    _cameraOff.style.display = 'block'
+    cameraOff()
+  } else {
+    _cameraOn.style.display = 'block'
+    _cameraOff.style.display = 'none'
+    cameraOn()
+  }
 }
 
-document.querySelector('.video_on_btn').onclick = () => {
+function cameraOn() {
   console.log('【开启视频】')
   const tracks = localStream.getVideoTracks()
   tracks.forEach(t => {
@@ -538,7 +609,7 @@ document.querySelector('.video_on_btn').onclick = () => {
   })
 }
 
-document.querySelector('.video_off_btn').onclick = () => {
+function cameraOff() {
   console.log('【关闭视频】')
   const tracks = localStream.getVideoTracks()
   tracks.forEach(t => {
@@ -547,8 +618,6 @@ document.querySelector('.video_off_btn').onclick = () => {
     }
   })
 }
-
-
 
 // 录制
 function getMediaRecord(stream) {

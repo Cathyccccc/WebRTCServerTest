@@ -1,14 +1,24 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { resolve } = require('path');
-// const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const WebpackObfuscator = require('webpack-obfuscator');
+
+const isDev = process.env.NODE_ENV === 'development'
 
 module.exports = {
   mode: 'development',
-  entry: './Public/js/index.js',
+  entry: {
+    app: './Public/js/index.js',
+    // hot: 'webpack/hot/dev-server.js',
+  },
   output: {
     filename: 'main.js',
-    path: resolve(__dirname, './Public/dist')
+    path: resolve(__dirname, './Public/dist'),
   },
+  // devServer: {
+  //   hot: true
+  // },
+  devtool: isDev ? 'source-map': false,
   watch: true,
   module: {
     rules: [
@@ -24,21 +34,24 @@ module.exports = {
       },
       {
         test: /.css$/,
-        use: ['style-loader', 'css-loader']
+        use: [MiniCssExtractPlugin.loader, 'css-loader']
       }
     ]
   },
-  
+
   plugins: [
     new HtmlWebpackPlugin({
       filename: 'index.html',
       template: resolve(__dirname, './Public/index.html')
     }),
-    // new MiniCssExtractPlugin({
-    //   // Options similar to the same options in webpackOptions.output
-    //   // both options are optional
-    //   filename: devMode ? "[name].css" : "[name].[contenthash].css",
-    //   chunkFilename: devMode ? "[id].css" : "[id].[contenthash].css",
-    // }),
+    new MiniCssExtractPlugin({
+      // Options similar to the same options in webpackOptions.output
+      // both options are optional
+      filename: isDev ? "[name].css" : "[name].[contenthash].css",
+      chunkFilename: isDev ? "[id].css" : "[id].[contenthash].css",
+    }),
+    new WebpackObfuscator({
+      rotateStringArray: true
+    }, ['/node_modules/']),
   ]
 }

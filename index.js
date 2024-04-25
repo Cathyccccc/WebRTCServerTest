@@ -5,60 +5,21 @@ const { Server } = require('socket.io');
 // const httpServer = https.createServer(app)
 const http = require('http');
 const httpServer = http.createServer(app)
+
+// const port = 3000 // 本地调试
+const port = 12306
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://127.0.0.1:12306"],
+    origin: [`http://127.0.0.1:${port}`],
     credentials: true
-  }
+  },
+  pingTimeout: 60000,
 })
-const multer = require('multer')
 const path = require('path')
-const fs = require('fs')
-const bodyParser = require('body-parser');
-
-app.use(bodyParser.urlencoded({ extended: false, limit: '50mb' }));
-app.use(bodyParser.json({ limit: '50mb' })); // 解析json格式的请求体
-
-const upload = multer({
-  dest: path.resolve(__dirname, './Public/upload')
-})
 
 app.use(express.static(path.join(__dirname, '/Public/dist')));
 app.get('*', (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*") // 解决跨域问题
-})
-
-app.post('/upload', upload.single('file'), (req, res) => {
-  console.log(req.file);
-  res.send(req.file);
-})
-
-app.get('/file', (req, res) => {
-  fs.readdir(path.resolve(__dirname, './Public/upload'), (err, files) => {
-    if (err) {
-      res.send(err);
-    } else {
-      res.send(files);
-    }
-  })
-})
-
-app.use('/delfile', (req, res) => {
-  const name = req.body.data
-  fs.unlink(path.join(path.resolve(__dirname, './Public/upload'), name), (err) => {
-    if (err) {
-      res.send({
-        status: 0,
-        msg: 'delete failed'
-      })
-    } else {
-      res.send({
-        status: 1,
-        msg: 'delete success',
-        data: name
-      })
-    }
-  })
 })
 
 let room;
@@ -80,7 +41,7 @@ io.on('connection', (socket) => {
 
   socket.on('join', (data) => {
     const { user, roomId, from } = data;
-    if (!room) {
+    if (room !== roomId) {
       room = roomId; // 这里逻辑简化，第一个加入的人直接创建房间（房间号不同的话加入的是不同的房间）
     }
     socket.join(room); // 加入房间的机制由 Adapter 配置
@@ -150,10 +111,20 @@ io.on('connection', (socket) => {
   })
 
   socket.on('disconnect', (reason) => {
-    console.log('=== disconnect ===', reason)
-    socket.to(room).emit('break', { // 房间内某个人断开通知到个人
-      from: socket.id
-    })
+    console.log(`=== disconnect === 【 ${reason} 】`)
+    if (reason === 'client namespace disconnect') {
+      console.log('客户端使用socket.disconnect()手动断开socket')
+    } else if (reason === 'server namespace disconnect') {
+      console.log('服务端使用socket.disconnect强行断开')
+    } else if (reason === 'server shutting down') {
+      console.log('服务器正在关闭')
+    } else if (reason === 'ping timeout') {
+      console.log('pingTimeout 客户端在延迟中没有发送 PONG 数据包')
+    } else if (reason === 'transport close') {
+      console.log('连接已关闭（例如：用户失去连接，或网络从 WiFi 更改为 4G）')
+    } else if (reason === 'transport error') {
+      console.log('连接遇到错误')
+    }
   })
 })
 
@@ -168,6 +139,6 @@ stun.request('127.0.0.1', (err, res) => {
   }
 });
 
-httpServer.listen(12306, () => { // 如果使用createServer，这里必须用createServer来监听端口，不能再使用app监听了
+httpServer.listen(port, () => { // 如果使用createServer，这里必须用createServer来监听端口，不能再使用app监听了
   console.log('服务器监听12306端口')
 })
